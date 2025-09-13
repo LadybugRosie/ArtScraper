@@ -1,0 +1,23 @@
+# Virtual environments
+venv/
+.env/
+
+# Bytecode files
+__pycache__/
+*.pyc
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Sensitive information
+.env
+
+# Log files
+*.log
+
+# Other
+dist/
+build/
