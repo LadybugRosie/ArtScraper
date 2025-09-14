@@ -124,22 +124,16 @@ def search_similar_images_toolhouse(image_path):
             'Authorization': f'Bearer {TOOLHOUSE_API_KEY}',
             'Content-Type': 'application/json'
         }
+        ## Check for correctness of format
 
         # Use Toolhouse's web scraping tools to find similar images
         payload = {
-            'tool': 'web_scraper',
-            'parameters': {
-                'task': 'reverse_image_search',
-                'image_data': image_base64,
-                'search_engines': ['bing', 'yandex', 'tineye'],  # Alternative engines
-                'max_results': 10,
-                'include_metadata': True,
-                'crawl_depth': 2  # How deep to crawl for additional sources
+           # Configure API Here
             }
         }
 
-        response = requests.post(f'{TOOLHOUSE_BASE_URL}/tools/execute',
-                                 json=payload, headers=headers)
+        # response = requests.post(f'{TOOLHOUSE_BASE_URL}/tools/execute', <- Does Not Make Sense
+                                # json=payload, headers=headers)
 
         if response.status_code != 200:
             return {
@@ -183,62 +177,6 @@ def search_similar_images_toolhouse(image_path):
             'source': 'toolhouse'
         }
 
-
-def crawl_image_sites_toolhouse(image_base64):
-    """Use Toolhouse to crawl specific image sharing sites"""
-
-    # List of sites to crawl for similar images
-    target_sites = [
-        'pinterest.com',
-        'flickr.com',
-        'unsplash.com',
-        'shutterstock.com',
-        'getty images.com'
-    ]
-
-    additional_matches = []
-
-    try:
-        headers = {
-            'Authorization': f'Bearer {TOOLHOUSE_API_KEY}',
-            'Content-Type': 'application/json'
-        }
-
-        for site in target_sites:
-            payload = {
-                'tool': 'web_crawler',
-                'parameters': {
-                    'url': f'https://{site}',
-                    'search_query': 'similar images',  # Would need to be more sophisticated
-                    'image_comparison': image_base64,
-                    'max_pages': 3,
-                    'extract_images': True,
-                    'similarity_threshold': 0.7
-                }
-            }
-
-            response = requests.post(f'{TOOLHOUSE_BASE_URL}/tools/execute',
-                                     json=payload, headers=headers)
-
-            if response.status_code == 200:
-                data = response.json()
-                if 'results' in data and 'similar_images' in data['results']:
-                    for img in data['results']['similar_images'][:2]:  # Limit per site
-                        additional_matches.append({
-                            'title': img.get('alt_text', f'Image from {site}'),
-                            'source': site,
-                            'thumbnail': img.get('thumbnail_url', ''),
-                            'link': img.get('page_url', ''),
-                            'similarity': img.get('similarity_score', 'Medium'),
-                            'search_engine': f'Toolhouse Crawler ({site})'
-                        })
-
-    except Exception as e:
-        print(f"Error crawling sites: {e}")
-
-    return additional_matches
-
-
 def combine_search_results(serpapi_results, toolhouse_results):
     """Combine and deduplicate results from different sources"""
 
@@ -278,56 +216,6 @@ def combine_search_results(serpapi_results, toolhouse_results):
         'toolhouse_count': toolhouse_results.get('total_found', 0),
         'errors': []
     }
-
-
-# Enhanced endpoint for more detailed analysis
-@app.route('/advanced-search', methods=['POST'])
-def advanced_search():
-    """More comprehensive search using Toolhouse's advanced features"""
-
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image uploaded'}), 400
-
-    file = request.files['image']
-    temp_path = os.path.join('uploads', file.filename)
-    file.save(temp_path)
-
-    try:
-        # Convert image to base64
-        with open(temp_path, 'rb') as img_file:
-            image_base64 = base64.b64encode(img_file.read()).decode('utf-8')
-
-        # Use Toolhouse for comprehensive analysis
-        headers = {
-            'Authorization': f'Bearer {TOOLHOUSE_API_KEY}',
-            'Content-Type': 'application/json'
-        }
-
-        payload = {
-            'tool': 'image_analyzer',
-            'parameters': {
-                'image_data': image_base64,
-                'analysis_types': ['reverse_search', 'metadata_extraction', 'source_tracking'],
-                'deep_web_search': True,
-                'social_media_search': True,
-                'stock_photo_search': True,
-                'ai_generated_detection': True
-            }
-        }
-
-        response = requests.post(f'{TOOLHOUSE_BASE_URL}/tools/execute',
-                                 json=payload, headers=headers)
-
-        os.remove(temp_path)
-
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            return jsonify({'error': 'Advanced analysis failed'}), 500
-
-    except Exception as e:
-        os.remove(temp_path)
-        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
